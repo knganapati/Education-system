@@ -130,12 +130,6 @@ class Attendance(Base):
     student = relationship("User", back_populates="attendance_records")
 
 
-class UserOTP(Base):
-    __tablename__ = "user_otps"
 
-    id = Column(Integer, primary_key=True, index=True)
-    email = Column(String(255), index=True, nullable=False)
-    otp_code = Column(String(6), nullable=False)
-    expires_at = Column(DateTime, nullable=False)
-    used = Column(Boolean, default=False, nullable=False)
+
 

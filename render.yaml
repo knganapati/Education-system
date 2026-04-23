@@ -1,0 +1,26 @@
+services:
+  # Backend API
+  - type: web
+    name: skillbridge-api
+    env: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn src.main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: DATABASE_URL
+        sync: false # Set this in Render dashboard
+      - key: JWT_SECRET_KEY
+        sync: false # Set this in Render dashboard
+      - key: MONITORING_API_KEY
+        generateValue: true
+      - key: APP_ENV
+        value: production
+
+  # Frontend (Static Site)
+  - type: static
+    name: skillbridge-ui
+    env: static
+    buildCommand: cd frontend && npm install && npm run build
+    publishDir: frontend/dist
+    envVars:
+      - key: VITE_API_URL
+        value: https://skillbridge-api.onrender.com # Update this after backend deployment

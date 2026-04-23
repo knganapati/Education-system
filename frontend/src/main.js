@@ -4,7 +4,7 @@ import { auth, batches, sessions, attendance, summary, monitoring } from './api.
 const state = {
   user: JSON.parse(localStorage.getItem('sb_user')) || null,
   view: 'dashboard',
-  otp_email: '', // Temporary state for OTP flow
+  loading: false,
 }
 
 const appEl = document.querySelector('#app')
@@ -51,7 +51,6 @@ function renderLogin() {
           <button type="submit" class="btn btn-primary">Sign In</button>
         </form>
         <div style="text-align: center; margin-top: 1.5rem">
-           <button class="btn btn-link" style="margin:0" onclick="window.navigate('otp-request')">Login with OTP Instead</button>
            <button class="btn btn-link" style="margin:0" onclick="window.navigate('signup')">Create Account</button>
         </div>
       </div>
@@ -71,68 +70,6 @@ function renderLogin() {
   })
 }
 
-function renderOTPRequest() {
-  appEl.innerHTML = `
-    <div class="auth-wrapper">
-      <div class="auth-card">
-        <h1 class="auth-title">Verify <span>Email</span></h1>
-        <p class="auth-subtitle">We'll send a 6-digit code to your inbox</p>
-        <form id="otp-req-form">
-          <div class="form-group">
-            <label class="label">Email Address</label>
-            <input type="email" name="email" class="input" placeholder="registered@email.com" required>
-          </div>
-          <button type="submit" class="btn btn-primary">Send Code</button>
-        </form>
-        <button class="btn btn-link" onclick="window.navigate('login')">Back to Password Login</button>
-      </div>
-    </div>
-  `
-  document.querySelector('#otp-req-form').addEventListener('submit', async (e) => {
-    e.preventDefault()
-    const email = e.target.email.value
-    try {
-      await auth.requestOtp(email)
-      state.otp_email = email
-      showToast('OTP sent! Check your terminal console.')
-      navigate('otp-verify')
-    } catch (err) {
-      showToast(err.detail || 'Request failed', true)
-    }
-  })
-}
-
-function renderOTPVerify() {
-  appEl.innerHTML = `
-    <div class="auth-wrapper">
-      <div class="auth-card">
-        <h1 class="auth-title">Enter <span>Code</span></h1>
-        <p class="auth-subtitle">Verify email: <b>${state.otp_email}</b></p>
-        <form id="otp-verify-form">
-          <div class="form-group">
-            <label class="label">6-Digit OTP Code</label>
-            <input type="text" name="otp" class="input" placeholder="000000" maxlength="6" required>
-          </div>
-          <button type="submit" class="btn btn-primary">Verify & Login</button>
-        </form>
-        <button class="btn btn-link" onclick="window.navigate('otp-request')">Resend Code</button>
-      </div>
-    </div>
-  `
-  document.querySelector('#otp-verify-form').addEventListener('submit', async (e) => {
-    e.preventDefault()
-    try {
-      const res = await auth.verifyOtp(state.otp_email, e.target.otp.value)
-      localStorage.setItem('sb_token', res.access_token)
-      localStorage.setItem('sb_user', JSON.stringify(res.user))
-      state.user = res.user
-      navigate('dashboard')
-    } catch (err) {
-      showToast(err.detail || 'Invalid OTP', true)
-    }
-  })
-}
-
 function renderSignup() {
   appEl.innerHTML = `
     <div class="auth-wrapper">
@@ -140,7 +77,10 @@ function renderSignup() {
         <h1 class="auth-title">SkillBridge <span>+</span></h1>
         <p class="auth-subtitle">Create your skilling account</p>
         <form id="signup-form">
-          <div class="form-group"><label class="label">Full Name</label><input type="text" name="name" class="input" required></div>
+          <div class="form-group">
+            <label class="label">Full Name</label>
+            <input type="text" name="name" class="input" placeholder="Type your full name..." required>
+          </div>
           <div class="form-group"><label class="label">Email</label><input type="email" name="email" class="input" required></div>
           <div class="form-group"><label class="label">Password</label><input type="password" name="password" class="input" required></div>
           <div class="form-group">
@@ -379,8 +319,6 @@ window.getMToken = async () => {
 
 function render() {
   if (state.view === 'signup') renderSignup()
-  else if (state.view === 'otp-request') renderOTPRequest()
-  else if (state.view === 'otp-verify') renderOTPVerify()
   else if (!state.user) renderLogin()
   else renderDashboard()
 }

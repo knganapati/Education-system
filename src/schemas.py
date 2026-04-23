@@ -35,13 +35,8 @@ class TokenResponse(BaseModel):
     expires_in_seconds: int
 
 
-class OTPRequest(BaseModel):
-    email: EmailStr = Field(..., description="Email to send OTP to")
 
 
-class OTPVerifyRequest(BaseModel):
-    email: EmailStr = Field(..., description="Email for verification")
-    otp_code: str = Field(..., min_length=6, max_length=6, description="6-digit verification code")
 
 
 

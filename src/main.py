@@ -42,8 +42,14 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
 
 @app.on_event("startup")
 def on_startup():
-    """Create database tables on startup."""
-    init_db()
+    """Create database tables on startup and verify connection."""
+    print(f"🚀 Initializing system with environment: {settings.APP_ENV}")
+    try:
+        init_db()
+        print("✅ Database tables created/verified on Neon PostgreSQL.")
+    except Exception as e:
+        print(f"❌ Database initialization failed: {e}")
+
 
 
 # ─── Routers ──────────────────────────────────────────────────────────────────

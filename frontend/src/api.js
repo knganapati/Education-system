@@ -1,4 +1,4 @@
-const API_URL = 'http://localhost:8000';
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
 export async function request(endpoint, options = {}) {
   const token = localStorage.getItem('sb_token');
@@ -42,14 +42,6 @@ export const auth = {
   getMonitoringToken: (key) => request('/auth/monitoring-token', {
     method: 'POST',
     body: JSON.stringify({ key }),
-  }),
-  requestOtp: (email) => request('/auth/otp/request', {
-    method: 'POST',
-    body: JSON.stringify({ email }),
-  }),
-  verifyOtp: (email, otp_code) => request('/auth/otp/verify', {
-    method: 'POST',
-    body: JSON.stringify({ email, otp_code }),
   }),
 };
 
