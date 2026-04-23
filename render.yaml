@@ -1,17 +1,19 @@
 services:
-  # Backend API
   - type: web
     name: skillbridge-api
+    plan: free
+    region: ohio
     env: python
     buildCommand: pip install -r requirements.txt
     startCommand: uvicorn src.main:app --host 0.0.0.0 --port $PORT
     envVars:
       - key: DATABASE_URL
-        sync: false # Set this in Render dashboard
+        value: postgresql://neondb_owner:npg_xOCsvfiSU49G@ep-flat-wildflower-amw7aqfs.c-5.us-east-1.aws.neon.tech/neondb?sslmode=require
       - key: JWT_SECRET_KEY
-        sync: false # Set this in Render dashboard
-      - key: MONITORING_API_KEY
         generateValue: true
+      - key: JWT_ALGORITHM
+        value: HS256
+      - key: MONITORING_API_KEY
+        value: SB-ADMIN-99-TEST-KEY
       - key: APP_ENV
         value: production
-
