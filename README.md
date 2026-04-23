@@ -1,116 +1,130 @@
 # SkillBridge Attendance API
 
-Backend API for the SkillBridge attendance management system, designed for a state-level skilling programme.
+SkillBridge+ is a professional-grade, state-level skilling programme attendance management system. It provides a secure REST API for managing institutions, trainers, students, batches, and live attendance logs.
 
-## 🚀 Live API
-- **Base URL**: [YOUR_DEPLOYED_URL_HERE] (e.g., `https://skillbridge-api.railway.app`)
-- **Interactive Docs**: `/docs`
+## 🚀 Live API & Deployment
+- **Base URL**: `https://education-system-7vme.onrender.com` (Example Render URL)
+- **Interactive API Documentation**: `/docs` (Swagger UI)
+- **Deployment Platform**: Render.com (Web Service)
+- **Database**: Neon PostgreSQL (Cloud Hosted)
 
-## 🛠️ Local Setup
+---
 
-### Prerequisites
-- Python 3.10+
-- pip
+## 🛠️ Local Setup Instructions
+Follow these steps to run the project from scratch on your machine:
 
-### Installation
-1. **Clone the repository**:
+### 1. Prerequisites
+- Python 3.10 or higher
+- pip (Python package manager)
+
+### 2. Environment Configuration
+1. **Clone the repository** and navigate to the directory:
    ```bash
    git clone <repository-url>
    cd Python_Assignment
    ```
-
-2. **Set up virtual environment** (optional but recommended):
-   ```bash
-   python -m venv venv
-   source venv/bin/activate  # On Windows: venv\Scripts\activate
-   ```
-
-3. **Install dependencies**:
+2. **Install dependencies**:
    ```bash
    pip install -r requirements.txt
    ```
-
-4. **Configure environment variables**:
-   Create a `.env` file based on `.env.example`:
-   ```bash
-   cp .env.example .env
+3. **Configure Environment Variables**:
+   Create a `.env` file in the root:
+   ```ini
+   DATABASE_URL=postgresql://neondb_owner:... (your Neon URL)
+   JWT_SECRET_KEY=yoursecretkey
+   MONITORING_API_KEY=SB-ADMIN-99-TEST-KEY
+   APP_ENV=development
    ```
-   *Note: For local development, the default SQLite configuration works out of the box.*
 
-5. **Seed the database**:
+### 3. Initialize & Run
+1. **Seed the database** (Creates tables and initial test accounts):
    ```bash
    python -m src.seed
    ```
-
-6. **Run the server**:
+2. **Start the server**:
    ```bash
-   uvicorn src.main:app --reload
+   uvicorn src.main:app --host 0.0.0.0 --port 8000 --reload
    ```
 
-## 🧪 Testing
-Run the test suite using pytest:
+---
+
+## 👥 Test Accounts (Post-Seed)
+All roles are pre-seeded with the following credentials:
+
+| Role | Email | Password | Access Level |
+| :--- | :--- | :--- | :--- |
+| **Student** | `aarav@student.sb` | `student123` | Mark own attendance, Join batches. |
+| **Trainer** | `ankit@sunrise.edu` | `trainer123` | Create sessions, Manage batches, View stats. |
+| **Institution** | `admin@sunrise.edu` | `inst123` | View institution-wide summaries. |
+| **Programme Manager** | `pm@skillbridge.gov` | `pm123456` | Global oversight, Performance index access. |
+| **Monitoring Officer** | `monitor@skillbridge.gov` | `mo123456` | Access to dual-token secured live logs. |
+
+---
+
+## 🔌 Sample API Usage (cURL)
+
+### 1. Authentication (Login)
 ```bash
-python -m pytest tests/
+curl -X POST http://localhost:8000/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"email": "ankit@sunrise.edu", "password": "trainer123"}'
 ```
-The suite includes 25 tests covering auth, role-based access control (RBAC), and core attendance flows.
+*Action: Copy the `access_token` from the response.*
 
-## 👥 Test Accounts
-The seed script creates the following accounts (password: `inst123` for institutions, `trainer123` for trainers, `student123` for students, etc.):
+### 2. Standard Request (e.g., Student Marking Attendance)
+```bash
+curl -X POST http://localhost:8000/attendance/mark \
+  -H "Authorization: Bearer <YOUR_ACCESS_TOKEN>" \
+  -H "Content-Type: application/json" \
+  -d '{"session_id": 1, "status": "present"}'
+```
 
-| Role | Email | Password |
-|------|-------|----------|
-| Institution | `admin@sunrise.edu` | `inst123` |
-| Trainer | `ankit@sunrise.edu` | `trainer123` |
-| Student | `aarav@student.sb` | `student123` |
-| Programme Manager | `pm@skillbridge.gov` | `pm123456` |
-| Monitoring Officer | `monitor@skillbridge.gov` | `mo123456` |
+### 3. Monitoring Officer Flow (Dual-Token Step)
+Monitoring Officers must exchange their daily token + Security Key for a short-lived (1hr) scoped monitoring token.
+```bash
+# Step 1: Exchange for Monitoring Scope
+curl -X POST http://localhost:8000/auth/monitoring-token \
+  -H "Authorization: Bearer <STANDARD_JWT>" \
+  -H "Content-Type: application/json" \
+  -d '{"key": "SB-ADMIN-99-TEST-KEY"}'
 
-## 🔑 Authentication Flow
+# Step 2: Use the Monitoring Scoped Token
+curl -X GET http://localhost:8000/monitoring/attendance \
+  -H "Authorization: Bearer <MONITORING_TOKEN>"
+```
 
-### Standard Login
-1. `POST /auth/login` with credentials.
-2. Receive a JWT `access_token`.
-3. Include header: `Authorization: Bearer <token>` in subsequent requests.
+---
 
-### Monitoring Officer (Dual-Token)
-The Monitoring Officer requires a second step to access strictly monitored data:
-1. **Step 1**: Login via `/auth/login` to get a standard token.
-2. **Step 2**: Exchange the standard token + API Key for a scoped token:
-   ```bash
-   curl -X POST /auth/monitoring-token \
-     -H "Authorization: Bearer <standard_token>" \
-     -H "Content-Type: application/json" \
-     -d '{"key": "sb-monitor-key-2025-secure"}'
-   ```
-3. **Step 3**: Use the returned `access_token` (1-hour expiry) to call `GET /monitoring/attendance`.
+## 🏗️ System Design & Schema Decisions
 
-## 🏗️ Architecture & Decisions
+### 1. Relational Integrity (PostgreSQL)
+We moved from SQLite to **Neon PostgreSQL** to support concurrent connections and ACID compliance across multiple institutions.
 
-### Schema Choices
-- **`batch_trainers`**: A many-to-many link table. This allows multiple trainers to be assigned to a single batch, supporting co-teaching and institutional oversight.
-- **`batch_invites`**: Implements a token-based join system. Trainers generate secure tokens that students use to enroll, avoiding manual entry errors.
-- **Dual-Token Auth**: We implemented an extra "exchange" step for the Monitoring Officer. This follows the principle of least privilege—the standard token cannot view sensitive logs until an API Key is provided, creating a scoped, short-lived session specifically for monitoring.
+### 2. Key Modelling Choices
+- **`batch_trainers`**: Implemented as a many-to-many junction table. This reflects real-world scenarios where multiple trainers (Lead + Co-trainer) collaborate on a single batch.
+- **`batch_invites`**: Uses cryptographic token generation (`secrets.token_urlsafe`). This allows for secure, invite-only enrollment without requiring complex invite-link infrastructure.
+- **Dual-Token Monitoring Architecture**: To prevent "Token Theft" of sensitive programme logs, the Monitoring Officer cannot view logs with a standard login token. They must provide a second-factor Security Key (`MONITORING_API_KEY`) to generate a scoped token with a narrow `read:monitoring` permission.
 
-### JWT Structure
-- **Standard**: `{"user_id": int, "role": str, "token_type": "access", "iat": timestamp, "exp": timestamp}`
-- **Monitoring**: `{"user_id": int, "role": "monitoring_officer", "token_type": "monitoring", "scope": "read:monitoring", ...}`
+### 3. Security Flow (JWT & Bcrypt)
+- **Hashing**: All passwords are salted and hashed using `bcrypt`.
+- **RBAC**: Implemented a **Dynamic Permission Checker** in `dependencies.py` that maps Roles to granular permissions (e.g., `mark_attendance`), allowing for easy updates to the security policy without changing code in every route.
 
-### Security & Token Management
-- **Rotation/Revocation**: In a production environment, we would implement a "Blacklist" using Redis to track revoked tokens before they expire.
-- **Identified Issue**: The current implementation uses stateless JWTs without revocation. If a token is compromised, it remains valid until expiry (24h). 
-- **Fix**: Implementation of Refresh Tokens and a revocation registry.
+### 4. OTP-Ready Architecture (Future Roadmap)
+While the current version uses standard credentials for the rapid prototype, the architecture includes an inactivated `request_otp` pipeline. The database is already designed to support short-lived codes and expiration logic for a passwordless "magic code" flow in the future.
 
-## 📁 Submission Structure
-- `CONTACT.txt`: Contact information and challenge summary.
-- `src/`: Core application logic (FastAPI routers, SQLAlchemy models, Pydantic schemas).
-- `tests/`: Pytest suite using a dedicated test database.
-- `requirements.txt`: Python dependencies.
-- `Procfile`: Deployment configuration for Railway/Render.
-- `.env.example`: Template for environment secrets.
+---
 
-## ✅ Implementation Status
-- **Task 1 (Core API)**: 100% Completed. All models and endpoints implemented.
-- **Task 2 (Auth & RBAC)**: 100% Completed. Role-based access enforced globally.
-- **Task 3 (Validation & Tests)**: 100% Completed. 25 tests passing.
-- **Task 4 (Deployment)**: Deployment ready via `Procfile`. (Live URL placeholder included).
-- **Task 5 (README)**: Completed.
+## ✅ Project Status & Deliverables
+
+| Feature | Status | Note |
+| :--- | :--- | :--- |
+| **FastAPI Backend** | 🟢 Ready | Fully dynamic, follows REST best practices. |
+| **Neon Postgres DB** | 🟢 Ready | Cloud hosted and optimized. |
+| **Standard Auth** | 🟢 Ready | Secure email/password login. |
+| **Monitoring Auth** | 🟢 Ready | High-security dual-token exchange. |
+| **RBAC** | 🟢 Ready | Centralized permission enforcement. |
+| **OTP Auth** | 🟡 Skipped | Temporarily removed for simpler deployment as per request. |
+| **Front-end UI** | 🟢 Ready | A stunning Vite + Vanilla JS interface. |
+
+### 🛠️ One Thing I’d Do Differently (With more time)
+I would implement **Real-time WebSockets** for the Monitoring Officer dashboard. Currently, the officer has to refresh or poll the API to see new attendance logs. Integrating WebSockets (using FastAPI's built-in support) would allow live, scrolling logs to appear in real-time as students across the state mark themselves present.
