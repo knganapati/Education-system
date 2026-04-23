@@ -3,7 +3,10 @@ from sqlalchemy.orm import Session as DBSession
 from sqlalchemy import func
 from src.database import get_db
 from src.models import User, UserRole, Batch, BatchStudent, BatchTrainer, Session as SessionModel, Attendance
-from src.schemas import BatchSummaryResponse, InstitutionSummaryResponse, ProgrammeSummaryResponse
+from src.schemas import (
+    BatchSummaryResponse, InstitutionSummaryResponse, ProgrammeSummaryResponse,
+    StudentStatsResponse, TrainerStatsResponse, BatchResponse
+)
 from src.dependencies import RoleChecker
 
 router = APIRouter(tags=["Summaries"])
