@@ -3,6 +3,7 @@ from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.exceptions import RequestValidationError
 from src.database import init_db
+from src.config import settings
 from src.routers import auth, batches, sessions, attendance, summary, monitoring
 
 app = FastAPI(
